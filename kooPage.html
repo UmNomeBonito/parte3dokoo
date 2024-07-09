@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SUKUNA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <style>
+        body {
+            background-image: url(c5c7d5f891b311f3618b020875480b49.jpg);
+            background-size: cover;
+        }
+        #output {
+            font-size: 2em;
+            color: cyan; 
+        }
+        .room-container {
+            margin-bottom: 10px;
+        }
+        .room-container button {
+            margin-right: 5px;
+        }
+        .room_name {
+            cursor: pointer;
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            display: inline-block;
+        }
+        .room_name:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="logout" onclick="logout()" class="btn btn-danger">Logout🚪</button>
+        <center>
+            <div id="output"></div>
+        </center>
+    </div>
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyD6w185gwufIYtLm14OlYXU5IZRyxRXkSE",
+            authDomain: "projeto-appweb.firebaseapp.com",
+            databaseURL: "https://projeto-appweb-default-rtdb.firebaseio.com",
+            projectId: "projeto-appweb",
+            storageBucket: "projeto-appweb.appspot.com",
+            messagingSenderId: "530514682421",
+            appId: "1:530514682421:web:2f4d45442148c38842077c",
+            measurementId: "G-46RY8NE96T"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        function getData() {
+            firebase.database().ref("/").on('value', function(snapshot) {
+                document.getElementById("output").innerHTML = "";
+                snapshot.forEach(function(childSnapshot) {
+                    var childKey = childSnapshot.key;
+                    document.getElementById("output").innerHTML += `
+                        <div onclick="redirectToRoomName('${childKey}')" class="room_name">${childKey}</div>`;
+                });
+            });
+        }
+        getData();
+
+        function addRoom() {
+            var sala = document.getElementById("nome_da_sala").value;
+            if (sala) {
+                firebase.database().ref("/").child(sala).update({
+                    purpose: "adicionar sala"
+                });
+
+                // Salva a sala no localStorage
+                var salas = JSON.parse(localStorage.getItem('salas')) || [];
+                salas.push(sala);
+                localStorage.setItem('salas', JSON.stringify(salas));
+
+                // Cria o botão com o conteúdo da sala e o botão de exclusão
+                createRoomButton(sala);
+
+                // Limpa o campo de entrada
+                document.getElementById("nome_da_sala").value = "";
+            } else {
+                alert("Por favor, insira o nome da sala.");
+            }
+        }
+
+        function redirectToRoomName(name) {
+            localStorage.setItem("room_name", name);
+            window.location = "kooPage.html";
+        }
+
+        function logout() {
+            localStorage.removeItem("id");
+            localStorage.removeItem("room_name");
+            window.location = "index.html";
+        }
+
+        function loadRooms() {
+            var salas = JSON.parse(localStorage.getItem('salas')) || [];
+            salas.forEach(function(sala) {
+                createRoomButton(sala);
+            });
+        }
+
+        function createRoomButton(sala) {
+            var roomContainer = document.createElement("div");
+            roomContainer.className = "room-container";
+
+            var button = document.createElement("button");
+            button.innerHTML = sala;
+            button.className = "btn btn-primary";
+            button.onclick = function() {
+                localStorage.setItem('sala', sala);
+                window.location = "kooPage.html";
+            };
+
+            var deleteButton = document.createElement("button");
+            deleteButton.innerHTML = "🗑";
+            deleteButton.className = "btn btn-danger";
+            deleteButton.onclick = function() {
+                deleteRoom(sala, roomContainer);
+            };
+
+            roomContainer.appendChild(button);
+            roomContainer.appendChild(deleteButton);
+            document.getElementById("output").appendChild(roomContainer);
+        }
+
+        function deleteRoom(sala, roomContainer) {
+            // Remove a sala do localStorage
+            var salas = JSON.parse(localStorage.getItem('salas')) || [];
+            salas = salas.filter(function(item) {
+                return item !== sala;
+            });
+            localStorage.setItem('salas', JSON.stringify(salas));
+
+            // Remove a sala do Firebase
+            firebase.database().ref("/").child(sala).remove()
+                .then(function() {
+                    console.log("Sala removida do Firebase com sucesso.");
+                })
+                .catch(function(error) {
+                    console.error("Erro ao remover sala do Firebase: ", error);
+                });
+
+            // Remove o container da sala do DOM
+            document.getElementById("output").removeChild(roomContainer);
+        }
+
+        // Carrega as salas ao iniciar a página
+        window.onload = loadRooms;
+    </script>
+</body>
+</html>
